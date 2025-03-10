@@ -1,102 +1,118 @@
-# Wprowadzenie
+# Introduction
 
-Rozważamy realizację języka programowania **Pętlik**. Składnię języka opisuje następująca gramatyka z symbolem początkowym **Program**:
+We consider the implementation of the **Pętlik** programming language. The syntax of the language is described by the following grammar with the start symbol **Program**:
 
 ```
-Program → CiągInstrukcji
-CiągInstrukcji → ε | CiągInstrukcji Instrukcja
-Instrukcja → Zwiększ | Powtarzaj
-Zwiększ → Zmienna
-Powtarzaj → '(' Zmienna CiągInstrukcji ')'
-Zmienna → 'a' | ... | 'z'
+Program → InstructionSequence
+InstructionSequence → ε | InstructionSequence Instruction
+Instruction → Increment | Loop
+Increment → Variable
+Loop → '(' Variable InstructionSequence ')'
+Variable → 'a' | ... | 'z'
 ```
 
-Program składa się jedynie ze znaków ujętych w apostrofy. Żadne inne znaki, nawet spacje czy znaki nowej linii, nie mogą wystąpić w kodzie źródłowym.
+A program consists solely of the characters that are enclosed in apostrophes in the grammar. Aside from these, no other characters—even spaces or newlines—may appear in the source code.
 
-Program ma dostęp do 26 zmiennych, których wartości są nieujemnymi liczbami całkowitymi. Instrukcje wyprowadzone z symbolu **CiągInstrukcji** są wykonywane sekwencyjnie, od pierwszej do ostatniej.
+The program has access to 26 variables, whose values are nonnegative integers.
 
-- **Instrukcja Zwiększ**, reprezentowana przez pojedynczą zmienną, jest równoważna instrukcji w języku C:
-  ```
-  ++zmienna;
-  ```
-- **Instrukcja Powtarzaj**, w postaci `(zmienna ... )`, jest równoważna następującej konstrukcji w języku C:
-  ```
-  while (zmienna > 0) {
-      --zmienna;
-      ...
-  }
-  ```
+The instructions derived from the symbol **InstructionSequence** are executed in order from the first to the last.
 
-Realizacja języka **Pętlik** składa się z dwóch głównych części:
-1. **Kompilator optymalizujący**, który generuje kod przeznaczony dla maszyny wirtualnej.
-2. **Interpreter**, który wykonuje kod tej maszyny.
+An **Increment** instruction, in the form of a single variable, is equivalent to the following C language instruction:
 
-## Instrukcje Maszyny
-
-Maszyna wirtualna wykonuje następujące polecenia:
-
-- **INC Zmienna**  
-  Zwiększa wartość zmiennej o 1.
-
-- **ADD Zmienna0 Zmienna1**  
-  Dodaje do zmiennej **Zmienna0** wartość zmiennej **Zmienna1**.
-
-- **CLR Zmienna**  
-  Ustawia wartość zmiennej **Zmienna** na 0.
-
-- **JMP Adres**  
-  Skacze do instrukcji znajdującej się pod adresem **Adres**.
-
-- **DJZ Zmienna Adres**  
-  Jeśli wartość zmiennej **Zmienna** wynosi 0, wykonuje skok do instrukcji o adresie **Adres**; w przeciwnym przypadku dekrementuje wartość **Zmienna** o 1.
-
-- **HLT**  
-  Zakończa wykonywanie programu.
-
-Wykonanie programu maszynowego zaczyna się od pierwszej instrukcji. Jeśli instrukcja nie wskazuje inaczej, po jej wykonaniu następuje przejście do kolejnej instrukcji. Kod wygenerowany dla programu kończy się instrukcją **HLT**.
-
-### Optymalizacja Instrukcji Powtarzaj
-
-Jeżeli instrukcja **Powtarzaj** nie zawiera zagnieżdżonej instrukcji **Powtarzaj**, czyli wewnątrz nawiasów znajduje się ciąg zmiennych `Zmienna0, ..., ZmiennaN` (dla N ≥ 0) i żadna z zmiennych `Zmienna1, ..., ZmiennaN` nie jest równa **Zmienna0**, to kompilator może wygenerować zoptymalizowany kod o następującej postaci:
+```c
+++variable;
 ```
-ADD Zmienna1 Zmienna0
+
+A **Loop** instruction, in the form `(variable ...)`, is equivalent to the following C language construct:
+
+```c
+while (variable > 0) {
+    --variable;
+    ...
+}
+```
+
+The implementation of the language consists of an optimizing compiler, which generates code for a virtual machine, and an interpreter for that machine code.
+
+## Virtual Machine Instructions
+
+The machine executes the following instructions:
+
+- **INC Variable (increment)**  
+  Increments the value of the variable by one.
+
+- **ADD Variable0 Variable1 (add)**  
+  Adds the value of **Variable1** to **Variable0**.
+
+- **CLR Variable (clear)**  
+  Resets the variable **Variable** to 0.
+
+- **JMP Address (jump)**  
+  Jumps to the instruction at the specified **Address**.
+
+- **DJZ Variable Address (decrement or jump if zero)**  
+  If **Variable** has the value 0, jump to the instruction at **Address**; otherwise, decrement the value of **Variable** by 1.
+
+- **HLT (halt)**  
+  Terminates the execution of the program.
+
+Execution of the machine language program begins with the first instruction.
+
+If an instruction does not specify otherwise, after its execution, control passes to the next instruction in the code.
+
+For a sequence of instructions, the compiler generates code in order from the first to the last instruction. The code generated for a program ends with the **HLT** instruction.
+
+If a **Loop** instruction does not contain another nested **Loop** instruction—meaning that within the parentheses there is a sequence of variables `Variable0, ..., VariableN` (for N ≥ 0), and none of the variables `Variable1, ..., VariableN` is equal to **Variable0**—the compiler generates optimized code of the following form:
+
+```
+ADD Variable1 Variable0
 ...
-ADD ZmiennaN Zmienna0
-CLR Zmienna0
+ADD VariableN Variable0
+CLR Variable0
 ```
-W przeciwnym razie generowany jest kod zwykły.
 
-Kod zwykły dla:
-- **Instrukcji Zwiększ** (`Zmienna`):
-  ```
-  INC Zmienna
-  ```
-- **Instrukcji Powtarzaj** (`(Zmienna ... )`):
-  ```
-  DJZ Zmienna Koniec
-  ...
-  JMP Początek
-  ```
-  gdzie **Początek** oznacza adres pierwszej instrukcji ciągu, a **Koniec** adres instrukcji następującej bezpośrednio po ciągu.
+If the conditions for generating optimized code for the instruction are not met, the compiler generates the standard code.
 
-## Polecenie
+Standard code for an **Increment** instruction, in the form of a variable, is:
 
-Napisz program będący realizacją języka **Pętlik**.
+```
+INC Variable
+```
 
-Program powinien obsługiwać dwa rodzaje poleceń:
+Standard code for a **Loop** instruction, in the form `(Variable ...)`, is:
 
-1. **Wypisanie wartości zmiennej:**  
-   Polecenie rozpoczynające się od znaku `=` i zawierające nazwę zmiennej. Program wypisuje wartość tej zmiennej w postaci dziesiętnej, bez zer wiodących (wartość 0 reprezentowana jako `0`, natomiast liczby dodatnie zaczynają się od cyfry różnej od zera).
+```
+DJZ Variable End
+...
+JMP Start
+```
 
-2. **Wykonanie programu w języku Pętlik:**  
-   Wiersz zawiera kod źródłowy programu w języku **Pętlik**. Przed wykonaniem pierwszego polecenia wszystkie zmienne mają wartość 0. Po wykonaniu programu zmienne zachowują swoje zmienione wartości; nie są one resetowane przed kolejnym wykonaniem.
+where **Start** is the address of the first instruction of this sequence, and **End** is the address of the instruction immediately following the last instruction of this sequence.
 
-## Postać Danych
+## Task
 
-Dane wejściowe programu stanowią ciąg wierszy, z których każdy zawiera jedno polecenie:
-- Wiersz zaczynający się od znaku `=` służy do wypisania wartości zmiennej.
-- Wiersz zawierający kod źródłowy w języku **Pętlik** służy do wykonania tego programu.
+Write a program that implements the **Pętlik** programming language.
 
-## Postać Wyniku
+The program reads and executes the following commands:
 
-Wynik programu to ciąg wierszy wypisanych w wyniku polecenia wypisania wartości zmiennych. Każda wartość wypisywana jest w osob ▋
+- **Printing the value of a variable;**
+- **Execution of a program written in the Pętlik language.**
+
+Before the execution of the first command, the values of all variables are 0.
+
+Variables retain their values after execution of a command. They are not reset before each execution of a program.
+
+## Input Format
+
+The program's input consists of a sequence of lines, each containing one command.
+
+- A command for printing the value of a variable begins with the character `=`, followed by the name of the variable.
+- A line that contains a command for executing a program contains source code in the Pętlik language.
+
+## Output Format
+
+The output of the program is the result of executing the commands for printing variable values.
+
+The value of a variable is printed in decimal notation on a single line, without any insignificant leading zeroes.
+
+The value 0 is represented by the digit `0`, and positive values start with a nonzero digit.
