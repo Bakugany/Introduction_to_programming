@@ -1,2 +1,1 @@
-# Introduction_to_programming
-Project from introduction to programming at University of Warsaw
+This repository contains projeect that I had done at introduction to programming course at Univeristy of Warsaw.
