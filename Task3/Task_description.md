@@ -1,89 +1,102 @@
-Introduction
+# Wprowadzenie
 
-We consider an implementation of the Pętlik programming language. The syntax of the language is described by the following grammar with the start symbol Program:
+Rozważamy realizację języka programowania **Pętlik**. Składnię języka opisuje następująca gramatyka z symbolem początkowym **Program**:
 
-Program → InstructionSequence
-InstructionSequence → ε | InstructionSequence Instruction
-Instruction → Increment | Repeat
-Increment → Variable
-Repeat → '(' Variable InstructionSequence ')'
-Variable → 'a' | ... | 'z'
+```
+Program → CiągInstrukcji
+CiągInstrukcji → ε | CiągInstrukcji Instrukcja
+Instrukcja → Zwiększ | Powtarzaj
+Zwiększ → Zmienna
+Powtarzaj → '(' Zmienna CiągInstrukcji ')'
+Zmienna → 'a' | ... | 'z'
+```
 
-The program consists only of those characters that are enclosed in apostrophes in the grammar. No other characters—even spaces or line breaks—may appear in the source code.
+Program składa się jedynie ze znaków ujętych w apostrofy. Żadne inne znaki, nawet spacje czy znaki nowej linii, nie mogą wystąpić w kodzie źródłowym.
 
-The program has access to 26 variables, whose values are non-negative integers.
+Program ma dostęp do 26 zmiennych, których wartości są nieujemnymi liczbami całkowitymi. Instrukcje wyprowadzone z symbolu **CiągInstrukcji** są wykonywane sekwencyjnie, od pierwszej do ostatniej.
 
-The instructions derived from the symbol InstructionSequence are executed sequentially from the first to the last.
+- **Instrukcja Zwiększ**, reprezentowana przez pojedynczą zmienną, jest równoważna instrukcji w języku C:
+  ```
+  ++zmienna;
+  ```
+- **Instrukcja Powtarzaj**, w postaci `(zmienna ... )`, jest równoważna następującej konstrukcji w języku C:
+  ```
+  while (zmienna > 0) {
+      --zmienna;
+      ...
+  }
+  ```
 
-The Increment instruction, written as a variable, is equivalent to the following C instruction:
+Realizacja języka **Pętlik** składa się z dwóch głównych części:
+1. **Kompilator optymalizujący**, który generuje kod przeznaczony dla maszyny wirtualnej.
+2. **Interpreter**, który wykonuje kod tej maszyny.
 
-  ++variable;
+## Instrukcje Maszyny
 
-The Repeat instruction, written in the form (variable ...), is equivalent to the following C instruction:
+Maszyna wirtualna wykonuje następujące polecenia:
 
-  while (variable > 0) {
-    --variable;
-    ...
-  }
+- **INC Zmienna**  
+  Zwiększa wartość zmiennej o 1.
 
-The implementation of the language consists of an optimizing compiler, which generates code for a virtual machine, and an interpreter for the code of that machine.
+- **ADD Zmienna0 Zmienna1**  
+  Dodaje do zmiennej **Zmienna0** wartość zmiennej **Zmienna1**.
 
-The machine executes the following instructions:
+- **CLR Zmienna**  
+  Ustawia wartość zmiennej **Zmienna** na 0.
 
-  INC Variable (increment)
-    Increments the value of the variable by one;
+- **JMP Adres**  
+  Skacze do instrukcji znajdującej się pod adresem **Adres**.
 
-  ADD Variable0 Variable1 (add)
-    Adds the value of Variable1 to Variable0;
+- **DJZ Zmienna Adres**  
+  Jeśli wartość zmiennej **Zmienna** wynosi 0, wykonuje skok do instrukcji o adresie **Adres**; w przeciwnym przypadku dekrementuje wartość **Zmienna** o 1.
 
-  CLR Variable (clear)
-    Resets the variable to zero;
+- **HLT**  
+  Zakończa wykonywanie programu.
 
-  JMP Address (jump)
-    Jumps to the instruction at the given address;
+Wykonanie programu maszynowego zaczyna się od pierwszej instrukcji. Jeśli instrukcja nie wskazuje inaczej, po jej wykonaniu następuje przejście do kolejnej instrukcji. Kod wygenerowany dla programu kończy się instrukcją **HLT**.
 
-  DJZ Variable Address (decrement or jump if zero)
-    If the variable is zero, jumps to the instruction at the given address; otherwise, decrements the variable by one;
+### Optymalizacja Instrukcji Powtarzaj
 
-  HLT (halt)
-    Terminates program execution.
+Jeżeli instrukcja **Powtarzaj** nie zawiera zagnieżdżonej instrukcji **Powtarzaj**, czyli wewnątrz nawiasów znajduje się ciąg zmiennych `Zmienna0, ..., ZmiennaN` (dla N ≥ 0) i żadna z zmiennych `Zmienna1, ..., ZmiennaN` nie jest równa **Zmienna0**, to kompilator może wygenerować zoptymalizowany kod o następującej postaci:
+```
+ADD Zmienna1 Zmienna0
+...
+ADD ZmiennaN Zmienna0
+CLR Zmienna0
+```
+W przeciwnym razie generowany jest kod zwykły.
 
-The execution of a program in machine language begins with the first instruction.
+Kod zwykły dla:
+- **Instrukcji Zwiększ** (`Zmienna`):
+  ```
+  INC Zmienna
+  ```
+- **Instrukcji Powtarzaj** (`(Zmienna ... )`):
+  ```
+  DJZ Zmienna Koniec
+  ...
+  JMP Początek
+  ```
+  gdzie **Początek** oznacza adres pierwszej instrukcji ciągu, a **Koniec** adres instrukcji następującej bezpośrednio po ciągu.
 
-Unless specified otherwise, after executing an instruction, the machine proceeds to the next instruction in the code.
+## Polecenie
 
-For an instruction sequence, the compiler generates code in the order from the first to the last instruction. The generated code for the program ends with an HLT instruction.
+Napisz program będący realizacją języka **Pętlik**.
 
-If a Repeat instruction does not contain a nested Repeat—i.e. if the parentheses contain a sequence of variables Variable0, ..., VariableN (for N ≥ 0), and if none of the variables Variable1, ..., VariableN is the same as Variable0—then the compiler generates optimized code of the following form:
+Program powinien obsługiwać dwa rodzaje poleceń:
 
-  ADD Variable1 Variable0
-  ...
-  ADD VariableN Variable0
-  CLR Variable0
+1. **Wypisanie wartości zmiennej:**  
+   Polecenie rozpoczynające się od znaku `=` i zawierające nazwę zmiennej. Program wypisuje wartość tej zmiennej w postaci dziesiętnej, bez zer wiodących (wartość 0 reprezentowana jako `0`, natomiast liczby dodatnie zaczynają się od cyfry różnej od zera).
 
-If the conditions required for generating optimized code are not met, the compiler generates the standard code.
+2. **Wykonanie programu w języku Pętlik:**  
+   Wiersz zawiera kod źródłowy programu w języku **Pętlik**. Przed wykonaniem pierwszego polecenia wszystkie zmienne mają wartość 0. Po wykonaniu programu zmienne zachowują swoje zmienione wartości; nie są one resetowane przed kolejnym wykonaniem.
 
-The standard code for an Increment instruction (of the form Variable) is:
+## Postać Danych
 
-  INC Variable
+Dane wejściowe programu stanowią ciąg wierszy, z których każdy zawiera jedno polecenie:
+- Wiersz zaczynający się od znaku `=` służy do wypisania wartości zmiennej.
+- Wiersz zawierający kod źródłowy w języku **Pętlik** służy do wykonania tego programu.
 
-The standard code for a Repeat instruction (of the form (Variable ...)) is:
+## Postać Wyniku
 
-  DJZ Variable End
-  ...
-  JMP Start
-
-where Start is the address of the first instruction in the sequence and End is the address of the instruction immediately following the last instruction in the sequence.
-
-Command
-
-Write a program that implements the Pętlik language.
-
-The program reads and executes commands for:
-
-  - printing the value of a variable, and
-  - executing a program written in the Pętlik language.
-
-Before executing the first command, all variables are initialized to 0.
-
-The variables retain their values between commands; they are not reset before each program execution.
+Wynik programu to ciąg wierszy wypisanych w wyniku polecenia wypisania wartości zmiennych. Każda wartość wypisywana jest w osob ▋
